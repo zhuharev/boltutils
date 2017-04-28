@@ -62,6 +62,9 @@ func makeIterateFunc(bucketName []byte, fn func(k, v []byte) error) func(tx *bol
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			err := fn(k, v)
 			if err != nil {
+				if err == ErrBreak {
+					return nil
+				}
 				return err
 			}
 		}
