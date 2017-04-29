@@ -2,6 +2,7 @@ package boltutils
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/boltdb/bolt"
 )
@@ -86,6 +87,15 @@ type DB struct {
 // New return pointer of DB
 func New(db *bolt.DB) *DB {
 	return &DB{DB: db}
+}
+
+// Open open database file and return pointer of DB
+func Open(path string, mode os.FileMode, options *bolt.Options) (*DB, error) {
+	db, err := bolt.Open(path, mode, options)
+	if err != nil {
+		return nil, err
+	}
+	return New(db), nil
 }
 
 // Put value into db
