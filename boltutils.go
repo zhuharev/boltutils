@@ -1,6 +1,7 @@
 package boltutils
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 
@@ -79,6 +80,49 @@ func Iterate(db *bolt.DB, bucketName []byte, fn func(k, v []byte) error) error {
 	return db.View(makeIterateFunc(bucketName, fn))
 }
 
+func makeIteratePrefixFunc(bucketName, prefix []byte, fn func(k, v []byte) error) func(tx *bolt.Tx) error {
+	return func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bucketName)
+		if bucket == nil {
+			return bolt.ErrBucketNotFound
+		}
+
+		c := bucket.Cursor()
+
+		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
+			err := fn(k, v)
+			if err != nil {
+				if err == ErrBreak {
+					return nil
+				}
+				return err
+			}
+		}
+
+		return nil
+	}
+}
+
+// IteratePrefix over database
+func IteratePrefix(db *bolt.DB, bucketName, prefix []byte, fn func(k, v []byte) error) error {
+	return db.View(makeIteratePrefixFunc(bucketName, prefix, fn))
+}
+
+func makeCreateBucketFunc(bucketName []byte) func(tx *bolt.Tx) error {
+	return func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists(bucketName)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+// CreateBucket create bucket if not exists
+func CreateBucket(db *bolt.DB, bucketName []byte) error {
+	return db.Update(makeCreateBucketFunc(bucketName))
+}
+
 // DB wrapper for bolt.DB
 type DB struct {
 	*bolt.DB
@@ -111,4 +155,14 @@ func (db *DB) Get(bucketName, key []byte) ([]byte, error) {
 // Iterate over db
 func (db *DB) Iterate(bucketName []byte, fn func(k, v []byte) error) error {
 	return Iterate(db.DB, bucketName, fn)
+}
+
+// IteratePrefix over db
+func (db *DB) IteratePrefix(bucketName, prefix []byte, fn func(k, v []byte) error) error {
+	return IteratePrefix(db.DB, bucketName, prefix, fn)
+}
+
+// CreateBucket create buckt if it not exists
+func (db *DB) CreateBucket(bucketName []byte) error {
+	return CreateBucket(db.DB, bucketName)
 }
