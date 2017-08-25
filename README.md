@@ -16,3 +16,11 @@ db.Put([]byte("key"), []byte("value"))
 value, _ := db.Get([]byte("key"))
 // value = []byte("value")
 ```
+
+## gzip in the box
+
+```go
+db.PutGzip([]byte("key"), []byte("value"))
+value, _ := db.GetGzipped([]byte("key"))
+// value = []byte("value")
+```
