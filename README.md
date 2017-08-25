@@ -11,7 +11,7 @@ import (
 
 ...
 
-db, _ := boltutils.New("path/to/db.bolt")
+db, _ := boltutils.Open("path/to/db.bolt", 0666, nil)
 db.Put([]byte("key"), []byte("value"))
 value, _ := db.Get([]byte("key"))
 // value = []byte("value")
