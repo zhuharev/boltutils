@@ -24,3 +24,10 @@ db.PutGzip([]byte("key"), []byte("value"))
 value, _ := db.GetGzipped([]byte("key"))
 // value = []byte("value")
 ```
+
+## json support
+
+```go
+db.PutJSON(anyStruct)
+err = db.GetJSON([]byte("bucket"), []byte("key"), &anyStruct)
+```
