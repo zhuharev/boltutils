@@ -3,7 +3,6 @@ package boltutils
 import (
 	"bytes"
 	"fmt"
-	"os"
 
 	"github.com/boltdb/bolt"
 )
@@ -216,25 +215,29 @@ func CreateBucketPath(db *bolt.DB, bucketPath [][]byte) error {
 // DB wrapper for bolt.DB
 type DB struct {
 	*bolt.DB
-	EnableGzip bool
+	Compressor Compressor
 }
 
 // New return pointer of DB
-func New(db *bolt.DB) *DB {
-	return &DB{DB: db}
-}
-
-// Open open database file and return pointer of DB
-func Open(path string, mode os.FileMode, options *bolt.Options) (*DB, error) {
-	db, err := bolt.Open(path, mode, options)
-	if err != nil {
-		return nil, err
+func New(opts ...Opt) (db *DB, err error) {
+	db = new(DB)
+	for _, opt := range opts {
+		err = opt(db)
+		if err != nil {
+			return
+		}
 	}
-	return New(db), nil
+	return
 }
 
 // Put value into db
-func (db *DB) Put(bucketName interface{}, key, value []byte) error {
+func (db *DB) Put(bucketName interface{}, key, value []byte) (err error) {
+	if db.Compressor != nil {
+		value, err = db.Compressor.Compress(value)
+		if err != nil {
+			return
+		}
+	}
 	return Put(db.DB, bucketName, key, value)
 }
 
@@ -245,7 +248,18 @@ func (db *DB) PutPath(bucketName [][]byte, key, value []byte) error {
 
 // Get value from db
 func (db *DB) Get(bucketName, key []byte) ([]byte, error) {
-	return Get(db.DB, bucketName, key)
+	data, err := Get(db.DB, bucketName, key)
+	if err != nil {
+		return nil, err
+	}
+
+	if db.Compressor != nil {
+		data, err = db.Compressor.Decompress(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return data, nil
 }
 
 // GetPath value from db

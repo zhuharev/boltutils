@@ -3,7 +3,6 @@ package boltutils
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io/ioutil"
 )
 
@@ -32,35 +31,6 @@ func gzipData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return b.Bytes(), nil
-}
-
-// GetGzipped get value, ungzip and return
-func (db *DB) GetGzipped(bucketName interface{}, key []byte) ([]byte, error) {
-	switch bucketN := bucketName.(type) {
-	case []byte:
-		data, err := db.Get(bucketN, key)
-		if err != nil {
-			return nil, err
-		}
-		return ungzipData(data)
-	case [][]byte:
-		data, err := db.GetPath(bucketN, key)
-		if err != nil {
-			return nil, err
-		}
-		return ungzipData(data)
-	}
-
-	return nil, fmt.Errorf("unknown bcuket name")
-}
-
-// PutGzip gzip value and put to db
-func (db *DB) PutGzip(bucketName interface{}, key, value []byte) error {
-	data, err := gzipData(value)
-	if err != nil {
-		return err
-	}
-	return db.Put(bucketName, key, data)
 }
 
 func (db *DB) IterateGzipped(bucketName []byte, fn func(k, v []byte) error) error {

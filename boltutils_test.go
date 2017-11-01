@@ -25,7 +25,7 @@ func dumpStructure(db *DB) {
 
 	db.View(func(tx *bolt.Tx) error {
 		tx.ForEach(func(name []byte, b *bolt.Bucket) error {
-			log.Printf("%s %s]n", name, b)
+			log.Printf("%s %v]n", name, b)
 			return nil
 		})
 		return nil
@@ -34,7 +34,7 @@ func dumpStructure(db *DB) {
 
 func TestPutGet(t *testing.T) {
 	defer cleanDb()
-	db, err := Open(_testDbPath, 0777, nil)
+	db, err := New(OpenPath(_testDbPath))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestPutGet(t *testing.T) {
 
 func TestCreateBucketPath(t *testing.T) {
 	defer cleanDb()
-	db, err := Open(_testDbPath, 0777, nil)
+	db, err := New(OpenPath(_testDbPath))
 	if err != nil {
 		t.Fatal(err)
 	}

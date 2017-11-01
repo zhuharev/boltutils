@@ -8,16 +8,16 @@ import (
 
 func TestGzip(t *testing.T) {
 	defer cleanDb()
-	db, err := Open(_testDbPath, 0777, nil)
+	db, err := New(OpenPath(_testDbPath), Compression(GzipCompressor))
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = db.PutGzip(_testBucket, _testKey, _testValue)
+	err = db.Put(_testBucket, _testKey, _testValue)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	value, err := db.GetGzipped(_testBucket, _testKey)
+	value, err := db.Get(_testBucket, _testKey)
 	if err != nil {
 		t.Fatal(err)
 	}
