@@ -118,8 +118,8 @@ func GetPath(db *bolt.DB, bucketNames [][]byte, key []byte) ([]byte, error) {
 	return res, err
 }
 
-func makeIterateFunc(bucketName []byte, fn func(k, v []byte) error) func(tx *bolt.Tx) error {
-	return func(tx *bolt.Tx) error {
+func makeIterateFunc(bucketName []byte, fn func(k, v []byte) error, compressors ...Compressor) func(tx *bolt.Tx) error {
+	return func(tx *bolt.Tx) (err error) {
 		bucket := tx.Bucket(bucketName)
 		if bucket == nil {
 			return bolt.ErrBucketNotFound
@@ -128,7 +128,13 @@ func makeIterateFunc(bucketName []byte, fn func(k, v []byte) error) func(tx *bol
 		c := bucket.Cursor()
 
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			err := fn(k, v)
+			if len(compressors) > 0 && compressors[0] != nil && len(v) > 0 {
+				v, err = compressors[0].Decompress(v)
+				if err != nil {
+					return err
+				}
+			}
+			err = fn(k, v)
 			if err != nil {
 				if err == ErrBreak {
 					return nil
@@ -142,8 +148,8 @@ func makeIterateFunc(bucketName []byte, fn func(k, v []byte) error) func(tx *bol
 }
 
 // Iterate over database
-func Iterate(db *bolt.DB, bucketName []byte, fn func(k, v []byte) error) error {
-	return db.View(makeIterateFunc(bucketName, fn))
+func Iterate(db *bolt.DB, bucketName []byte, fn func(k, v []byte) error, compressors ...Compressor) error {
+	return db.View(makeIterateFunc(bucketName, fn, compressors...))
 }
 
 func makeIteratePrefixFunc(bucketName, prefix []byte, fn func(k, v []byte) error) func(tx *bolt.Tx) error {
@@ -269,7 +275,7 @@ func (db *DB) GetPath(bucketName [][]byte, key []byte) ([]byte, error) {
 
 // Iterate over db
 func (db *DB) Iterate(bucketName []byte, fn func(k, v []byte) error) error {
-	return Iterate(db.DB, bucketName, fn)
+	return Iterate(db.DB, bucketName, fn, db.Compressor)
 }
 
 // IteratePrefix over db
